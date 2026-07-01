@@ -1,6 +1,8 @@
 # THP Kiosk
 
-THP Kiosk is a robust, security-focused Windows kiosk lock-down utility designed to enforce single-application usage while seamlessly handling idle session management and authorized exits.
+THP Kiosk is a robust, security-focused Windows kiosk lock-down utility designed to enforce single-application usage while seamlessly handling idle session management and authorized exits. THP Kiosk also does not require any type of Windows admin approval, which allows it to be run and installed as a standard user.
+
+**MacOS support coming soon!**
 
 ## Features
 
@@ -15,7 +17,7 @@ THP Kiosk is a robust, security-focused Windows kiosk lock-down utility designed
 
 ## Installation
 
-Run `THPKiosk-Setup.exe` to deploy the required PowerShell scripts, modify standard execution policies safely, and generate start menu and desktop shortcuts.
+Run `THP Kiosk Setup-v1.0-windows-x86_64.exe` to deploy the required PowerShell scripts, modify standard execution policies safely, and generate start menu and desktop shortcuts.
 
 ## Configuration
 
