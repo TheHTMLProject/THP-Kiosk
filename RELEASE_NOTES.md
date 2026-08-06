@@ -1,5 +1,19 @@
 # Release Notes - THP Kiosk
 
+## Version 1.1 - Antivirus Compatibility and Hardening
+
+This release resolves reports of endpoint security products (such as CrowdStrike) flagging THP Kiosk as malicious. The kiosk functionality is unchanged for end users; the changes remove the behaviors and packaging patterns that most commonly trigger false positives.
+
+* **Precompiled Key-Blocking Assembly:** The low-level keyboard hook is now shipped as a precompiled .NET assembly (`THPKioskHook.dll`) instead of being compiled from source at runtime. The kiosk no longer invokes a compiler at launch, which was the single strongest detection signal.
+* **No Global Key Polling:** The hook now tracks modifier keys from its own event stream rather than reading global keyboard state, avoiding a keylogger-style access pattern.
+* **Visible, Minimized Execution:** Scripts run minimized rather than fully hidden. The invisible-process patterns (`ShowWindow` hide, blanket `-WindowStyle Hidden`) have been removed.
+* **No Security-Policy Registry Edits:** The kiosk no longer disables Task Manager via the `DisableTaskMgr` policy key. Task Manager is instead contained by closing it if launched and by intercepting `Ctrl+Shift+Esc`.
+* **Cleaner Persistence:** Startup entries are no longer marked hidden or system, and the redundant registry Run key has been removed in favor of a single visible Startup shortcut.
+* **No Machine-Wide Execution Policy Change:** The installer no longer sets a persistent CurrentUser execution policy; scripts run with a transient per-invocation policy.
+* **Hashed Exit PIN:** The exit PIN is now stored as a SHA-256 hash instead of plain text. Existing plain-text PINs are migrated automatically.
+* **Tighter Lock-down:** The process allowlist no longer broadly permits `cmd`, `powershell`, or `wscript` windows; spawned shells are closed, while genuine Windows shell surfaces (including the volume flyout host) are permitted so on-screen volume feedback works again.
+* **Code Signing Guidance:** Documentation now covers free Authenticode signing via the SignPath Foundation for open-source projects, plus a self-signed path for managed fleets.
+
 ## Major Feature Additions
 * **Complete System Invisibility:** Transitioned core execution completely away from visible terminal prompts. All launch actions, configuration GUI interactions, and startup scripts operate silently without flashing standard console windows.
 * **Aggressive App Whitelisting:** Implemented an aggressive sub-second loop that hunts and kills unauthorized GUI applications and rogue executables. Only approved Kiosk software (and standard OS shells) are permitted to draw to the screen.

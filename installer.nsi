@@ -20,45 +20,35 @@ BrandingText "The HTML Project"
 !insertmacro MUI_LANGUAGE "English"
 
 Function LaunchKiosk
-    ExecShell "open" "powershell.exe" '-WindowStyle Hidden -ExecutionPolicy Bypass -File "$INSTDIR\kiosk.ps1"' SW_SHOWMINIMIZED
+    ExecShell "open" "powershell.exe" '-ExecutionPolicy Bypass -File "$INSTDIR\kiosk.ps1"' SW_SHOWMINIMIZED
 FunctionEnd
 
 Section "Install"
-    ; Hide this command using nsExec::Exec so it never flashes the big blue PS window
-    nsExec::Exec 'powershell.exe -Command "Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass -Force"'
-    
     SetOutPath "$INSTDIR"
     File "src\kiosk.ps1"
     File "src\config-gui.ps1"
+    File "src\THPKioskHook.dll"
+    File "src\THPKioskHook.cs"
 
-    SetFileAttributes "$INSTDIR\kiosk.ps1" HIDDEN
-    SetFileAttributes "$INSTDIR\config-gui.ps1" HIDDEN
+    CreateShortcut "$DESKTOP\Launch THP Kiosk.lnk" "powershell.exe" '-ExecutionPolicy Bypass -File "$INSTDIR\kiosk.ps1"' "$SYSDIR\shell32.dll" 13 SW_SHOWMINIMIZED
 
-    ; Rename desktop shortcut
-    CreateShortcut "$DESKTOP\Launch THP Kiosk.lnk" "powershell.exe" '-WindowStyle Hidden -ExecutionPolicy Bypass -File "$INSTDIR\kiosk.ps1"' "$SYSDIR\shell32.dll" 13 SW_SHOWMINIMIZED
-    
     CreateDirectory "$SMPROGRAMS\THP Kiosk"
-    CreateShortcut "$SMPROGRAMS\THP Kiosk\THP Kiosk.lnk" "powershell.exe" '-WindowStyle Hidden -ExecutionPolicy Bypass -File "$INSTDIR\kiosk.ps1"' "$SYSDIR\shell32.dll" 13 SW_SHOWMINIMIZED
-    CreateShortcut "$SMPROGRAMS\THP Kiosk\THP Kiosk Config.lnk" "powershell.exe" '-WindowStyle Hidden -ExecutionPolicy Bypass -File "$INSTDIR\config-gui.ps1"' "$SYSDIR\imageres.dll" 114 SW_SHOWMINIMIZED
+    CreateShortcut "$SMPROGRAMS\THP Kiosk\THP Kiosk.lnk" "powershell.exe" '-ExecutionPolicy Bypass -File "$INSTDIR\kiosk.ps1"' "$SYSDIR\shell32.dll" 13 SW_SHOWMINIMIZED
+    CreateShortcut "$SMPROGRAMS\THP Kiosk\THP Kiosk Config.lnk" "powershell.exe" '-ExecutionPolicy Bypass -File "$INSTDIR\config-gui.ps1"' "$SYSDIR\imageres.dll" 114 SW_SHOWMINIMIZED
     CreateShortcut "$SMPROGRAMS\THP Kiosk\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
-    
-    CreateShortcut "$SMSTARTUP\THP Kiosk.lnk" "powershell.exe" '-WindowStyle Hidden -ExecutionPolicy Bypass -File "$INSTDIR\kiosk.ps1"' "$SYSDIR\shell32.dll" 13 SW_SHOWMINIMIZED
-    SetFileAttributes "$SMSTARTUP\THP Kiosk.lnk" HIDDEN|SYSTEM
-    
-    ; Add Registry Run Key for Startup Redundancy
-    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "THPKiosk" '"powershell.exe" -WindowStyle Hidden -ExecutionPolicy Bypass -File "$INSTDIR\kiosk.ps1"'
+
+    CreateShortcut "$SMSTARTUP\THP Kiosk.lnk" "powershell.exe" '-ExecutionPolicy Bypass -File "$INSTDIR\kiosk.ps1"' "$SYSDIR\shell32.dll" 13 SW_SHOWMINIMIZED
 
     WriteUninstaller "$INSTDIR\Uninstall.exe"
-    SetFileAttributes "$INSTDIR\Uninstall.exe" HIDDEN
-    SetFileAttributes "$INSTDIR" HIDDEN
-    
-    ; Run config silently
-    nsExec::Exec 'powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File "$INSTDIR\config-gui.ps1"'
+
+    nsExec::Exec 'powershell.exe -ExecutionPolicy Bypass -File "$INSTDIR\config-gui.ps1"'
 SectionEnd
 
 Section "Uninstall"
     Delete "$INSTDIR\kiosk.ps1"
     Delete "$INSTDIR\config-gui.ps1"
+    Delete "$INSTDIR\THPKioskHook.dll"
+    Delete "$INSTDIR\THPKioskHook.cs"
     Delete "$INSTDIR\config.json"
     Delete "$INSTDIR\kiosk.log"
     Delete "$INSTDIR\Uninstall.exe"

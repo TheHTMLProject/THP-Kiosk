@@ -1,15 +1,14 @@
-Add-Type -Name Window -Namespace Console -MemberDefinition '
-[DllImport("Kernel32.dll")]
-public static extern IntPtr GetConsoleWindow();
-[DllImport("user32.dll")]
-public static extern bool ShowWindow(IntPtr hWnd, Int32 nCmdShow);
-'
-$consolePtr = [Console.Window]::GetConsoleWindow()
-[Console.Window]::ShowWindow($consolePtr, 0) | Out-Null
-
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
+
+function Get-PinHash($pin) {
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes([string]$pin)
+        return -join ($sha.ComputeHash($bytes) | ForEach-Object { $_.ToString("x2") })
+    } finally { $sha.Dispose() }
+}
 
 $configDir = "$env:LOCALAPPDATA\THPKiosk"
 $configPath = "$configDir\config.json"
@@ -18,7 +17,7 @@ $config = @{
     targetApp = "msedge"
     targetArgs = "--kiosk https://www.thehtmlproject.com --edge-kiosk-type=fullscreen --no-first-run"
     requirePin = $true
-    exitPin = ""
+    exitPinHash = ""
     exitKey = "Q"
     doRestart = $true
     restartTimeout = 5
@@ -32,7 +31,8 @@ if (Test-Path $configPath) {
         $loaded = Get-Content $configPath -Raw | ConvertFrom-Json
         if ($null -ne $loaded.targetApp) { $config.targetApp = $loaded.targetApp }
         if ($null -ne $loaded.targetArgs) { $config.targetArgs = $loaded.targetArgs }
-        if ($null -ne $loaded.exitPin) { $config.exitPin = $loaded.exitPin }
+        if ($loaded.exitPinHash) { $config.exitPinHash = $loaded.exitPinHash }
+        elseif ($loaded.exitPin) { $config.exitPinHash = (Get-PinHash $loaded.exitPin) }
         if ($null -ne $loaded.exitKey) { $config.exitKey = $loaded.exitKey }
         if ($null -ne $loaded.requirePin) { $config.requirePin = $loaded.requirePin }
         if ($null -ne $loaded.doRestart) { $config.doRestart = $loaded.doRestart }
@@ -53,7 +53,6 @@ $form.TopMost = $true
 $font = New-Object System.Drawing.Font("Segoe UI", 9)
 $form.Font = $font
 
-# Group: App
 $grpApp = New-Object System.Windows.Forms.GroupBox
 $grpApp.Text = "Target Application"
 $grpApp.Location = New-Object System.Drawing.Point(15, 15)
@@ -126,7 +125,6 @@ $radEdge.add_CheckedChanged($radEvent)
 $radCustom.add_CheckedChanged($radEvent)
 & $radEvent
 
-# Group: Security
 $grpSec = New-Object System.Windows.Forms.GroupBox
 $grpSec.Text = "Security"
 $grpSec.Location = New-Object System.Drawing.Point(15, 225)
@@ -149,7 +147,8 @@ $txtPin = New-Object System.Windows.Forms.TextBox
 $txtPin.Location = New-Object System.Drawing.Point(100, 52)
 $txtPin.Size = New-Object System.Drawing.Size(80, 23)
 $txtPin.UseSystemPasswordChar = $true
-$txtPin.Text = $config.exitPin
+$txtPin.Text = ""
+if ($config.exitPinHash) { $lblPin.Text = "Exit PIN (set):" }
 $grpSec.Controls.Add($txtPin)
 
 $radNoPin = New-Object System.Windows.Forms.RadioButton
@@ -204,7 +203,6 @@ $radNoPin.add_CheckedChanged($radSecEvent)
 $chkRestart.add_CheckedChanged($radSecEvent)
 & $radSecEvent
 
-# Group: Inactivity
 $grpIdle = New-Object System.Windows.Forms.GroupBox
 $grpIdle.Text = "Inactivity"
 $grpIdle.Location = New-Object System.Drawing.Point(15, 425)
@@ -243,7 +241,11 @@ $btnSave.ForeColor = [System.Drawing.Color]::White
 $btnSave.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
 $btnSave.FlatAppearance.BorderSize = 0
 $btnSave.add_Click({
-    if ($radPin.Checked -and $txtPin.Text.Length -lt 4) {
+    if ($radPin.Checked -and $txtPin.Text.Length -lt 4 -and -not $config.exitPinHash) {
+        [System.Windows.Forms.MessageBox]::Show("PIN must be at least 4 characters.", "Error", 0, 16)
+        return
+    }
+    if ($radPin.Checked -and $txtPin.Text.Length -gt 0 -and $txtPin.Text.Length -lt 4) {
         [System.Windows.Forms.MessageBox]::Show("PIN must be at least 4 characters.", "Error", 0, 16)
         return
     }
@@ -256,10 +258,16 @@ $btnSave.add_Click({
         return
     }
     if (-not (Test-Path $configDir)) { New-Item -ItemType Directory -Path $configDir -Force | Out-Null }
-    
+
+    $exitPinHash = ""
+    if ($radPin.Checked) {
+        if ($txtPin.Text.Length -ge 4) { $exitPinHash = Get-PinHash $txtPin.Text }
+        else { $exitPinHash = $config.exitPinHash }
+    }
+
     $newConfig = @{
         requirePin = $radPin.Checked
-        exitPin = $txtPin.Text
+        exitPinHash = $exitPinHash
         exitKey = $cmbExitKey.Text
         doRestart = $chkRestart.Checked
         restartTimeout = $numRestart.Value

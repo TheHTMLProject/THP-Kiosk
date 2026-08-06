@@ -1,0 +1,12 @@
+<Configuration>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>C:\Users\AsherHeisman\Documents\Development\THP-Kiosk</HostFolder>
+      <SandboxFolder>C:\THP</SandboxFolder>
+      <ReadOnly>true</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>powershell.exe -ExecutionPolicy Bypass -File C:\THP\sandbox-test.ps1</Command>
+  </LogonCommand>
+</Configuration>
